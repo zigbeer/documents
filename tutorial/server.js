@@ -1,19 +1,19 @@
 var ZShepherd = require('zigbee-shepherd');
-var zserver = new ZShepherd('/dev/ttyACM0', { net: { panId: 0x7C71, channelList: [ 11 ] } });
+var zserver = new ZShepherd('/dev/ttyACM0');
 
 zserver.on('ready', function () {
     console.log('Server is ready. Allow devices to join the network within 180 secs.');
     console.log('Waiting for incoming clients or messages...');
-    zserver.permitJoin(0xff);
+    zserver.permitJoin(180);
 });
 
 zserver.on('permitJoining', function (joinTimeLeft) {
     console.log(joinTimeLeft);
 });
 
-var osramLight,
-    geLight,
-    geLightStatus;
+var geBulb,
+    osramBulb,
+    osramBulbStatus;
 
 zserver.on('ind', function (msg) {
     switch (msg.type) {
@@ -24,15 +24,15 @@ zserver.on('ind', function (msg) {
                 console.log(ep.dump());
 
                 if (ep.devId === 544 && ep.clusters.has('genOnOff'))
-                    osramLight = ep;
+                    osramBulb = ep;
                 else if (ep.devId === 257 && ep.clusters.has('genOnOff'))
-                    geLight = ep;
+                    geBulb = ep;
 
-                if (osramLight && geLight) {
+                if (osramBulb && geBulb) {
                     setInterval(function () {
-                        osramLight.functional('genOnOff', 'toggle', {}, function (err) {
-                            if (err)
-                                console.log(err);
+                        geBulb.functional('genOnOff', 'toggle', {}, function (err) {
+                            if (!err)
+                                console.log('GE BULB TOGGLE!');
                         });
                     }, 5000);
                 }
@@ -40,14 +40,13 @@ zserver.on('ind', function (msg) {
             break;
 
         case 'devChange':
-            if (msg.endpoints[0].devId === 544) {
-                geLightStatus = msg.data.data.onOff ? 'off' : 'on';
-                geLight.functional('genOnOff', geStatus, {}, function (err) {
-                    if (err)
-                        console.log(err);
+            if (msg.endpoints[0].devId === 257) {
+                osramBulbStatus = !!msg.data.data.onOff ? 'off' : 'on';
+                osramBulb.functional('genOnOff', geBulbStatus, {}, function (err) {
+                    if (!err)
+                        console.log('OSRAM BULB ' + osramBulbStatus.toLowerCase() + '!');
                 });
             }
-
             break;
 
         default:
