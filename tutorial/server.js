@@ -13,6 +13,7 @@ zserver.on('permitJoining', function (joinTimeLeft) {
 
 var geBulb,
     osramBulb,
+    geBulbStatus,
     osramBulbStatus;
 
 zserver.on('ind', function (msg) {
@@ -41,10 +42,11 @@ zserver.on('ind', function (msg) {
 
         case 'devChange':
             if (msg.endpoints[0].devId === 257) {
-                osramBulbStatus = !!msg.data.data.onOff ? 'off' : 'on';
-                osramBulb.functional('genOnOff', geBulbStatus, {}, function (err) {
+                geBulbStatus = msg.data.data.onOff;
+                osramBulbStatus = !geBulbStatus ? 'on' : 'off';
+                osramBulb.functional('genOnOff', osramBulbStatus, {}, function (err) {
                     if (!err)
-                        console.log('OSRAM BULB ' + osramBulbStatus.toLowerCase() + '!');
+                        console.log('OSRAM BULB ' + osramBulbStatus.toUpperCase() + '!');
                 });
             }
             break;
